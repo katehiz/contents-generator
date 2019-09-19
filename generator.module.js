@@ -106,7 +106,6 @@ const ContentsGenerator = (function() {
                 return elem;
             });
 
-        console.table(hierarchy);
         return hierarchy;
     }
 
@@ -146,7 +145,6 @@ const ContentsGenerator = (function() {
 
         // осталяем только родителей
         titles_tree = titles_tree.filter( (elem) => elem.parent === 0);
-        //console.log(titles_tree);
 
         // формируем номера параграфов
         let outerIncrement = 1,
@@ -209,7 +207,6 @@ const ContentsGenerator = (function() {
         };
         titles_tree = titles_tree.map( setParagraphNumber );
 
-        //console.table(titles_tree);
         return titles_tree;
     }
 
@@ -221,9 +218,7 @@ const ContentsGenerator = (function() {
     function generateContents( container ) {
         let titles = prepareTitles(container);
         let data = buildContents( generateHierarchy(titles), titles );
-        /*console.log(generateHierarchy(titles));*/
         const parseLi = (acc, title) => {
-            //console.log(title);
             acc += `<li><span>${title.paragraph}</span><a href="#${title.anchor}" class="link-anchor">${title.text}</a>`;
             if ( title.childrens.length !== 0 ) {
                 acc += "<ul>";
@@ -244,16 +239,3 @@ const ContentsGenerator = (function() {
     }
 
 })();
-
-
-let contents = ContentsGenerator.generate( $('.news-detail-text') );
-if ( contents !== '' ) {
-	$('.news-detail-text').before("<div class='article_contents'><div class='h2'>Содержание</div><ul class='list-base'></ul></div>");
-	('.article_contents > ul')
-		.append(contents).find('a')
-		.each(function () {
-			this.addEventListener('click', function () {
-				window.history.pushState(null, null, this.href);
-			})
-		});
-}
