@@ -1,5 +1,5 @@
 // ГЕНЕРАТОР СОДЕРЖАНИЯ ДЛЯ СТАТЕЙ
-const ContentsGenerator = (function() {
+;const contentsGenerator = (function(window) {
 
     function transliterate(str) {
         str = str.toLowerCase().replace(/<.+>/, ' ').replace(/\s+/, ' ');
@@ -21,12 +21,12 @@ const ContentsGenerator = (function() {
 
     /**
      * Сбор и подготовка заголовков, добавление необходимых для навигации атрибутов
-     * @param {node} container - элемент DOM, содержащий заголовки
+     * @param {string} container - элемент DOM, содержащий заголовки
      * @returns {Object} titles - jQuery-коллекция обработанных заголовков
      */
     function prepareTitles(container) {
 
-        let titles = $(container).find('h2, h3, h4, h5, h6');
+        let titles = $(container).find('h1, h2, h3, h4, h5, h6');
 
         titles.each(function (index, element) {
             $(element)
@@ -101,7 +101,7 @@ const ContentsGenerator = (function() {
         // увеличение значения parent на 1 для удобной работы в дальнейшем
         hierarchy
             .map( (elem) => {
-                elem.parent = elem.parent === null ? 0 : elem.parent += 1;
+                elem.parent = (elem.parent === null) ? 0 : elem.parent += 1;
                 delete elem.parent_main;
                 return elem;
             });
@@ -113,7 +113,7 @@ const ContentsGenerator = (function() {
      * Генерирует окончательный массив объектов-заголовков
      * @param {Array} hierarchy - дерево иерархии
      * @param {{}} titles - заголовки
-     * @returns {Object} titles_tree - массив готовый к парсинку в html
+     * @returns {Object} titles_tree - массив готовый к парсингу в html
      */
 
     function buildContents( hierarchy, titles ) {
@@ -148,6 +148,7 @@ const ContentsGenerator = (function() {
 
         // формируем номера параграфов
         let outerIncrement = 1,
+            h2_inc = 1,
             h3_inc = 1,
             h4_inc = 1,
             h5_inc = 1,
@@ -164,12 +165,21 @@ const ContentsGenerator = (function() {
             if (currentValue.parent === 0) {
                 outerIncrement = index + 1; // сброс
                 currentValue.paragraph = increment + '.';
+                h2_inc = 1;
                 h3_inc = 1;
                 h4_inc = 1;
                 h5_inc = 1;
                 h6_inc = 1;
             } else {
                 switch (currentValue.level) {
+                    case 2:
+                        currentValue.paragraph = outerIncrement + '.' + h3_inc + '.';
+                        h2_inc++;
+                        h3_inc = 1;
+                        h4_inc = 1;
+                        h5_inc = 1;
+                        h6_inc = 1;
+                        break;
                     case 3:
                         currentValue.paragraph = outerIncrement + '.' + h3_inc + '.';
                         h3_inc++;
@@ -212,21 +222,25 @@ const ContentsGenerator = (function() {
 
     /**
      * Генерирует html список
-     * @param {node} container - элемент DOM, содержащий заголовки
+     * @param {string} container - элемент DOM, содержащий заголовки
      * @returns {string} - html список
      */
-    function generateContents( container ) {
+    function generateContentsList( container ) {
+        container = container || window.document.body;
+
         let titles = prepareTitles(container);
+        if (titles.length === 0) return '';
+
         let data = buildContents( generateHierarchy(titles), titles );
+
         const parseLi = (acc, title) => {
-            acc += `<li><span>${title.paragraph}</span><a href="#${title.anchor}" class="link-anchor">${title.text}</a>`;
+            acc += `<li><span>${title.paragraph}</span> <a href="#${title.anchor}" class="link-anchor">${title.text}</a>`;
             if ( title.childrens.length !== 0 ) {
                 acc += "<ul>";
                 acc += title.childrens.reduce(parseLi, '');
                 acc += "</ul>";
             }
             acc += "</li>";
-
             return acc;
         };
 
@@ -234,8 +248,7 @@ const ContentsGenerator = (function() {
     }
 
     return {
-        prepare: prepareTitles,
-        generate: generateContents
+        generate: generateContentsList
     }
 
-})();
+})(window);
