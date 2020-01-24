@@ -1,13 +1,19 @@
-// ГЕНЕРАТОР СОДЕРЖАНИЯ ДЛЯ СТАТЕЙ
-;const contentsGenerator = (function(window) {
+class ContentsGenerator {
+    constructor(container) {
+        this.container = container || window.document.body;
+        this.titles = $(container).find('h1, h2, h3, h4, h5, h6');
+    }
 
-    function transliterate(str) {
+    hasTitles() {
+        return this.titles.length !== 0;
+    }
+
+    static transliterate(str) {
         str = str.toLowerCase().replace(/<.+>/, ' ').replace(/\s+/, ' ');
         let newStr = "";
         const c = {
             'а':'a', 'б':'b', 'в':'v', 'г':'g', 'д':'d', 'е':'e', 'ё':'jo', 'ж':'zh', 'з':'z', 'и':'i', 'й':'j', 'к':'k', 'л':'l', 'м':'m', 'н':'n', 'о':'o', 'п':'p', 'р':'r', 'с':'s', 'т':'t', 'у':'u', 'ф':'f', 'х':'h', 'ц':'c', 'ч':'ch', 'ш':'sh', 'щ':'shch', 'ъ':'', 'ы':'y', 'ь':'', 'э':'e', 'ю':'ju', 'я':'ja', ' ':'-', ';':'', ':':'', ',':'', '—':'-', '–':'-', '.':'', '«':'', '»':'', '"':'', "'":'', '@':'', '?':'', '!':''
         };
-
         for (let i = 0; i < str.length; i++) {
             let ch = str.charAt(i);
             newStr += ch in c ? c[ch] : ch;
@@ -15,44 +21,23 @@
         if (newStr.split('-').length > 5) {
             newStr = newStr.split('-').slice(0, 5).join('-');
         }
-
         return newStr;
     }
 
-    /**
-     * Сбор и подготовка заголовков, добавление необходимых для навигации атрибутов
-     * @param {Object} container - элемент DOM, содержащий заголовки
-     * @returns {Object} titles - jQuery-коллекция обработанных заголовков
-     */
-    function prepareTitles(container) {
-
-        let titles = $(container).find('h1, h2, h3, h4, h5, h6');
-
+    static prepareTitles(titles) {
         titles.each(function (index, element) {
             $(element)
-                .attr('name', transliterate( $(element).text() ))
+                .attr('name', ContentsGenerator.transliterate( $(element).text() ))
                 .attr('data-level', element.tagName.substr(1));
         });
-
-        return titles;
     }
 
-    /**
-     * Генерация массива заголовков с данными об иерархии.
-     * Мы строим объект по данным полученным из предыдущей итерации,
-     * затем подготавливаем данные для следующей.
-     *
-     * @param {Object} titles - jQuery-коллекция обработанных заголовков
-     * @returns {Array} hierarchy - массив с информацией о зависимостях заголовков
-     */
-    function generateHierarchy(titles) {
-
+    static generateHierarchy(titles) {
         let parentCurr = null,
             parentMain = 0,
             hierarchy = [];
 
         titles.each( function(index) {
-
             let level_next,
                 level_current = parseInt( titles[index].dataset.level ),
                 item = {
@@ -63,7 +48,6 @@
                 };
 
             if ( titles[index+1] ) {
-
                 level_next = parseInt( titles[index+1].dataset.level );
 
                 // если следующий заголовок меньшего веса, то
@@ -84,7 +68,6 @@
                     } else {
                         parentCurr = parentMain;
                     }
-                    console.log(parentMain)
                 }
             }
 
@@ -109,16 +92,10 @@
         return hierarchy;
     }
 
-    /**
-     * Генерирует окончательный массив объектов-заголовков
-     * @param {Array} hierarchy - дерево иерархии
-     * @param {{}} titles - заголовки
-     * @returns {Object} titles_tree - массив готовый к парсингу в html
-     */
-
-    function buildContents( hierarchy, titles ) {
+    static buildContents( titles, hierarchy ) {
 
         let titles_tree = [];
+
         const generateEmptyItem = (acc, item) => {
             let result = {
                 text: $(item).text(),
@@ -220,18 +197,9 @@
         return titles_tree;
     }
 
-    /**
-     * Генерирует html список
-     * @param {Object} container - элемент DOM, содержащий заголовки
-     * @returns {string} - html список
-     */
-    function generateContentsList( container ) {
-        container = container || window.document.body;
-
-        let titles = prepareTitles(container);
-        if (titles.length === 0) return '';
-
-        let data = buildContents( generateHierarchy(titles), titles );
+    generate() {
+        if ( !this.hasTitles() ) return '';
+        this.constructor.prepareTitles(this.titles);
 
         const parseLi = (acc, title) => {
             acc += `<li><span>${title.paragraph}</span> <a href="#${title.anchor}" class="link-anchor">${title.text}</a>`;
@@ -244,11 +212,7 @@
             return acc;
         };
 
+        let data = this.constructor.buildContents( this.titles, this.constructor.generateHierarchy(this.titles) );
         return data.reduce(parseLi, '');
     }
-
-    return {
-        generate: generateContentsList
-    }
-
-})(window);
+}
