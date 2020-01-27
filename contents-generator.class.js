@@ -1,7 +1,7 @@
 class ContentsGenerator {
     constructor(container) {
         this.container = container || window.document.body;
-        this.titles = $(container).find('h1, h2, h3, h4, h5, h6');
+        this.titles = this.constructor.prepareTitles(container);
     }
 
     hasTitles() {
@@ -24,78 +24,97 @@ class ContentsGenerator {
         return newStr;
     }
 
-    static prepareTitles(titles) {
+    static prepareTitles(container) {
+        let titles = $(container).find('h1, h2, h3, h4, h5, h6');
         titles.each(function (index, element) {
             $(element)
                 .attr('name', ContentsGenerator.transliterate( $(element).text() ))
                 .attr('data-level', element.tagName.substr(1));
         });
+        return titles;
     }
 
-    static generateHierarchy(titles) {
-        let parentCurr = null,
-            parentMain = 0,
+    static generateFlatHierarchy(titles) {
+        let parentMain = 0, // самый главный предок для текущей итерации
             hierarchy = [];
 
+        const getElementLevel = function(index) {
+            return parseInt(titles[index].dataset.level)
+        };
+
+        const getLastLevelElement = function(lastLevel) {
+            let result = hierarchy.filter( (element) => element.level === lastLevel );
+            if (result.length === 0) return undefined;
+            return result[result.length - 1];
+        };
+
+        const getElementByIndex = function(index) {
+            return hierarchy[index];
+        };
+
         titles.each( function(index) {
-            let level_next,
-                level_current = parseInt( titles[index].dataset.level ),
-                item = {
-                    index: index,
-                    level: level_current,
-                    parent: parentCurr,
-                    parent_main: parentMain
-                };
+            let level_prev = null,
+                level_current = getElementLevel(index),
+                parent_current = null,
+                title_item;
 
-            if ( titles[index+1] ) {
-                level_next = parseInt( titles[index+1].dataset.level );
+            // если существует следующий объект после текущего, работаем
+            if ( index > 0 && titles[index - 1] ) {
+                level_prev = getElementLevel(index - 1);
 
-                // если следующий заголовок меньшего веса, то
-                // текущим родителем становится текущий элемент (его индекс): 2, 3
-                if (level_current < level_next) {
-                    parentCurr = index;
+                // если предыдущий заголовок большего веса(2 <- 3), то
+                if (level_current > level_prev) {
+                    parent_current = index - 1;
                 }
 
-                // если следующий заголовок такого же веса, то
-                // текущим родителем становится (остается) прежний 2, 2
-                if ( level_next === level_current) {}
+                // если следующий заголовок такого же веса (2 -> 2), что и текущий, то
+                // текущим родителем становится (остается) прежний
+                if (level_current === level_prev) {
+                    parent_current = getElementByIndex(index - 1).parent;
+                }
 
-                // если следующий заголовок бОльшего веса, то
-                // текущим родителем становится старший родитель 3, 2
-                if (level_next < level_current) {
-                    if (level_next <= titles[parentMain].dataset.level && parentMain === 0) {
-                        parentCurr = null;
+                // если предыдущий заголовок меньшего веса (2 <- 1)
+                if (level_current < level_prev) {
+                    if (level_prev === getElementLevel(parentMain)) {
+                        // для случаев, если следующий заголовок самого верхнего уровня - H1
+                        parent_current = null;
                     } else {
-                        parentCurr = parentMain;
+                        // найти в массиве hierarchy последний элемент с таким же весом и вернуть его родителя
+                        parent_current = getLastLevelElement(level_current).parent;
                     }
                 }
             }
 
-            // если вес текущего элемента >= главного веса, то
+            // если вес текущего элемента больше главного веса, то
             // главным весом становится элемент с текущим индексом
-            if ( level_current < titles[parentMain].dataset.level) {
+            if ( level_current <= getElementLevel(parentMain) ) {
                 parentMain = index;
             }
 
-            hierarchy[index] = item;
+            title_item = {
+                index: index,
+                level: level_current,
+                parent: parent_current
+            };
+            title_item.parent_main = parentMain;
+            hierarchy[index] = title_item;
         });
-
-        // отсев ненужных ключей: parent-main
-        // увеличение значения parent на 1 для удобной работы в дальнейшем
-        hierarchy
-            .map( (elem) => {
-                elem.parent = (elem.parent === null) ? 0 : elem.parent += 1;
-                delete elem.parent_main;
-                return elem;
-            });
 
         return hierarchy;
     }
 
-    static buildContents( titles, hierarchy ) {
+    static generateHierarchy( titles, hierarchy ) {
 
-        let titles_tree = [];
+        let titles_tree = [],
+            // формируем номера параграфов
+            outerIncrement = 1,
+            //h2_inc = 1,
+            h3_inc = 1,
+            h4_inc = 1,
+            h5_inc = 1,
+            h6_inc = 1;
 
+        // создание базовый объект для заголовка
         const generateEmptyItem = (acc, item) => {
             let result = {
                 text: $(item).text(),
@@ -106,31 +125,6 @@ class ContentsGenerator {
             return acc;
         };
 
-        // формируем заготовки для будущего массива
-        titles_tree = titles.toArray().reduce( generateEmptyItem, [] );
-
-        // добавляем ключ parent каждому элементу в иерархии
-        // инкубируем дочерние элементы в родительские
-        hierarchy.forEach(function (item) {
-            titles_tree[item.index].level = item.level;
-            titles_tree[item.index].parent = item.parent;
-
-            if (item.parent !== 0) {
-                titles_tree[item.parent-1].childrens.push( titles_tree[item.index] );
-            }
-        });
-
-        // осталяем только родителей
-        titles_tree = titles_tree.filter( (elem) => elem.parent === 0);
-
-        // формируем номера параграфов
-        let outerIncrement = 1,
-            h2_inc = 1,
-            h3_inc = 1,
-            h4_inc = 1,
-            h5_inc = 1,
-            h6_inc = 1;
-
         // устанавливаем номер параграфа для каждого заголовка содержания
         const setParagraphNumber = (currentValue, index) => {
             // счетчик цикла одного уровня
@@ -138,11 +132,11 @@ class ContentsGenerator {
 
             if (currentValue === undefined) return;
 
-            // формируем параграф. Это псевдоколдунство, не изящное но годное
-            if (currentValue.parent === 0) {
+            // формируем параграф. Это псевдоколдунство, не изящное, но годное
+            if (currentValue.parent === null) {
                 outerIncrement = index + 1; // сброс
                 currentValue.paragraph = increment + '.';
-                h2_inc = 1;
+                //h2_inc = 1;
                 h3_inc = 1;
                 h4_inc = 1;
                 h5_inc = 1;
@@ -151,7 +145,7 @@ class ContentsGenerator {
                 switch (currentValue.level) {
                     case 2:
                         currentValue.paragraph = outerIncrement + '.' + h3_inc + '.';
-                        h2_inc++;
+                        //h2_inc++;
                         h3_inc = 1;
                         h4_inc = 1;
                         h5_inc = 1;
@@ -192,15 +186,29 @@ class ContentsGenerator {
 
             return currentValue;
         };
+
+        // формируем заготовки для будущего массива
+        titles_tree = titles.toArray().reduce( generateEmptyItem, [] );
+
+        // добавляем ключ parent каждому элементу в иерархии
+        // инкубируем дочерние элементы в родительские
+        hierarchy.forEach(function (item) {
+            titles_tree[item.index].level = item.level;
+            titles_tree[item.index].parent = item.parent;
+
+            if (item.parent !== null) {
+                titles_tree[item.parent].childrens.push( titles_tree[item.index] );
+            }
+        });
+
+        // осталяем только родителей
+        titles_tree = titles_tree.filter( (elem) => elem.parent === null);
         titles_tree = titles_tree.map( setParagraphNumber );
 
         return titles_tree;
     }
 
-    generate() {
-        if ( !this.hasTitles() ) return '';
-        this.constructor.prepareTitles(this.titles);
-
+    static buildContents(hierarchy) {
         const parseLi = (acc, title) => {
             acc += `<li><span>${title.paragraph}</span> <a href="#${title.anchor}" class="link-anchor">${title.text}</a>`;
             if ( title.childrens.length !== 0 ) {
@@ -211,8 +219,21 @@ class ContentsGenerator {
             acc += "</li>";
             return acc;
         };
+        return hierarchy.reduce(parseLi, '');
+    }
 
-        let data = this.constructor.buildContents( this.titles, this.constructor.generateHierarchy(this.titles) );
-        return data.reduce(parseLi, '');
+    generate() {
+        if ( !this.hasTitles() ) return '';
+
+        const
+            generateFlatHierarchy = this.constructor.generateFlatHierarchy,
+            generateHierarchy = this.constructor.generateHierarchy,
+            buildContents = this.constructor.buildContents;
+
+        let hierarchy = generateHierarchy( this.titles, generateFlatHierarchy(this.titles) );
+
+        debugger;
+
+        return buildContents(hierarchy);
     }
 }

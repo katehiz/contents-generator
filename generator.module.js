@@ -155,25 +155,25 @@
             h6_inc = 1;
 
         // устанавливаем номер параграфа для каждого заголовка содержания
-        const setParagraphNumber = (currentValue, index) => {
+        const setParagraphNumber = (element, index) => {
             // счетчик цикла одного уровня
             let increment = (index + 1);
 
-            if (currentValue === undefined) return;
+            if (element === undefined) return;
 
             // формируем параграф. Это псевдоколдунство, не изящное но годное
-            if (currentValue.parent === 0) {
+            if (element.parent === 0) {
                 outerIncrement = index + 1; // сброс
-                currentValue.paragraph = increment + '.';
+                element.paragraph = increment + '.';
                 h2_inc = 1;
                 h3_inc = 1;
                 h4_inc = 1;
                 h5_inc = 1;
                 h6_inc = 1;
             } else {
-                switch (currentValue.level) {
+                switch (element.level) {
                     case 2:
-                        currentValue.paragraph = outerIncrement + '.' + h3_inc + '.';
+                        element.paragraph = outerIncrement + '.' + h3_inc + '.';
                         h2_inc++;
                         h3_inc = 1;
                         h4_inc = 1;
@@ -181,25 +181,25 @@
                         h6_inc = 1;
                         break;
                     case 3:
-                        currentValue.paragraph = outerIncrement + '.' + h3_inc + '.';
+                        element.paragraph = outerIncrement + '.' + h3_inc + '.';
                         h3_inc++;
                         h4_inc = 1;
                         h5_inc = 1;
                         h6_inc = 1;
                         break;
                     case 4:
-                        currentValue.paragraph = outerIncrement + '.' + (h3_inc-1) + '.' + h4_inc + '.';
+                        element.paragraph = outerIncrement + '.' + (h3_inc-1) + '.' + h4_inc + '.';
                         h4_inc++;
                         h5_inc = 1;
                         h6_inc = 1;
                         break;
                     case 5:
-                        currentValue.paragraph = outerIncrement + '.' + (h3_inc-1) + '.' + (h4_inc-1) + '.' + h5_inc + '.';
+                        element.paragraph = outerIncrement + '.' + (h3_inc-1) + '.' + (h4_inc-1) + '.' + h5_inc + '.';
                         h5_inc++;
                         h6_inc = 1;
                         break;
                     case 6:
-                        currentValue.paragraph = outerIncrement + '.' + (h3_inc-1) + '.' + (h4_inc-1) + '.' + (h5_inc-1) + '.' + h6_inc + '.';
+                        element.paragraph = outerIncrement + '.' + (h3_inc-1) + '.' + (h4_inc-1) + '.' + (h5_inc-1) + '.' + h6_inc + '.';
                         h6_inc++;
                         break;
                 }
@@ -207,13 +207,13 @@
 
             // формируем параграфы для дочерних
             // Если у текущего элемента есть дети
-            if (currentValue.childrens.length !== 0) {
-                currentValue.childrens.forEach( function(element, index) {
+            if (element.childrens.length !== 0) {
+                element.childrens.forEach( function(element, index) {
                     setParagraphNumber(element, index);
                 });
             }
 
-            return currentValue;
+            return element;
         };
         titles_tree = titles_tree.map( setParagraphNumber );
 
