@@ -8,6 +8,14 @@ class ContentsGenerator {
         return this.titles.length !== 0;
     }
 
+    /**
+     * Транслитерация латинницы в кириллицу
+     *
+     * @param {String}
+     * @returns {String}
+     *
+     * @static
+     */
     static transliterate(str) {
         str = str.toLowerCase().replace(/<.+>/, ' ').replace(/\s+/, ' ');
         let newStr = "";
@@ -24,6 +32,14 @@ class ContentsGenerator {
         return newStr;
     }
 
+    /**
+     * Сбор и подготовка заголовков, добавление необходимых для навигации атрибутов
+     *
+     * @param {Object} container - элемент DOM, содержащий заголовки
+     * @returns {Object} titles - jQuery-коллекция обработанных заголовков
+     *
+     * @static
+     */
     static prepareTitles(container) {
         let titles = $(container).find('h1, h2, h3, h4, h5, h6');
         titles.each(function (index, element) {
@@ -34,9 +50,18 @@ class ContentsGenerator {
         return titles;
     }
 
-    static generateFlatHierarchy(titles) {
+    /**
+     * Генерация массива вложенных объектов-заголовков с данными об иерархии.
+     *
+     * @param {Object} titles - jQuery-коллекция обработанных заголовков
+     * @returns {Array} titles_tree - массив с информацией о зависимостях заголовков
+     *
+     * @static
+     */
+    static generateHierarchy(titles) {
         let parentMain = 0, // самый главный предок для текущей итерации
-            hierarchy = [];
+            hierarchy = [], // плоская иерархия заголовков
+            titles_tree = []; // вложенная иерархия объектов-заголовоков
 
         const getElementLevel = function(index) {
             return parseInt(titles[index].dataset.level)
@@ -100,22 +125,17 @@ class ContentsGenerator {
             hierarchy[index] = title_item;
         });
 
-        return hierarchy;
-    }
-
-    static generateHierarchy( titles, hierarchy ) {
-
-        let titles_tree = [],
-            // формируем номера параграфов
-            outerIncrement = 1,
-            //h2_inc = 1,
+        // -------------------------------------------------------
+        let
+            first_inc = 1,
+            h2_inc = 1,
             h3_inc = 1,
             h4_inc = 1,
             h5_inc = 1,
             h6_inc = 1;
 
         // создание базовый объект для заголовка
-        const generateEmptyItem = (acc, item) => {
+        const generateEmptyTitleObj = (acc, item) => {
             let result = {
                 text: $(item).text(),
                 anchor: $(item).attr('name'),
@@ -126,51 +146,51 @@ class ContentsGenerator {
         };
 
         // устанавливаем номер параграфа для каждого заголовка содержания
-        const setParagraphNumber = (currentValue, index) => {
+        const setParagraphNumber = (title, index) => {
             // счетчик цикла одного уровня
-            let increment = (index + 1);
+            //let increment = (index + 1);
 
-            if (currentValue === undefined) return;
+            if (title === undefined) return;
 
             // формируем параграф. Это псевдоколдунство, не изящное, но годное
-            if (currentValue.parent === null) {
-                outerIncrement = index + 1; // сброс
-                currentValue.paragraph = increment + '.';
-                //h2_inc = 1;
+            if (title.parent === null) {
+                first_inc = index + 1; // сброс
+                title.paragraph = first_inc + '.';
+                h2_inc = 1;
                 h3_inc = 1;
                 h4_inc = 1;
                 h5_inc = 1;
                 h6_inc = 1;
             } else {
-                switch (currentValue.level) {
+                switch (title.level) {
                     case 2:
-                        currentValue.paragraph = outerIncrement + '.' + h3_inc + '.';
-                        //h2_inc++;
+                        title.paragraph = first_inc + '.' + h2_inc + '.';
+                        h2_inc++;
                         h3_inc = 1;
                         h4_inc = 1;
                         h5_inc = 1;
                         h6_inc = 1;
                         break;
                     case 3:
-                        currentValue.paragraph = outerIncrement + '.' + h3_inc + '.';
+                        title.paragraph = first_inc + '.' + (h2_inc - 1) + '.' + h3_inc + '.';
                         h3_inc++;
                         h4_inc = 1;
                         h5_inc = 1;
                         h6_inc = 1;
                         break;
                     case 4:
-                        currentValue.paragraph = outerIncrement + '.' + (h3_inc-1) + '.' + h4_inc + '.';
+                        title.paragraph = first_inc + '.' + (h2_inc - 1) + '.' + (h3_inc-1) + '.' + h4_inc + '.';
                         h4_inc++;
                         h5_inc = 1;
                         h6_inc = 1;
                         break;
                     case 5:
-                        currentValue.paragraph = outerIncrement + '.' + (h3_inc-1) + '.' + (h4_inc-1) + '.' + h5_inc + '.';
+                        title.paragraph = first_inc + '.' + (h2_inc - 1) + '.' + (h3_inc-1) + '.' + (h4_inc-1) + '.' + h5_inc + '.';
                         h5_inc++;
                         h6_inc = 1;
                         break;
                     case 6:
-                        currentValue.paragraph = outerIncrement + '.' + (h3_inc-1) + '.' + (h4_inc-1) + '.' + (h5_inc-1) + '.' + h6_inc + '.';
+                        title.paragraph = first_inc + '.' + (h2_inc - 1) + '.' + (h3_inc-1) + '.' + (h4_inc-1) + '.' + (h5_inc-1) + '.' + h6_inc + '.';
                         h6_inc++;
                         break;
                 }
@@ -178,17 +198,17 @@ class ContentsGenerator {
 
             // формируем параграфы для дочерних
             // Если у текущего элемента есть дети
-            if (currentValue.childrens.length !== 0) {
-                currentValue.childrens.forEach( function(element, index) {
+            if (title.childrens.length !== 0) {
+                title.childrens.forEach( function(element, index) {
                     setParagraphNumber(element, index);
                 });
             }
 
-            return currentValue;
+            return title;
         };
 
         // формируем заготовки для будущего массива
-        titles_tree = titles.toArray().reduce( generateEmptyItem, [] );
+        titles_tree = titles.toArray().reduce( generateEmptyTitleObj, [] );
 
         // добавляем ключ parent каждому элементу в иерархии
         // инкубируем дочерние элементы в родительские
@@ -203,11 +223,20 @@ class ContentsGenerator {
 
         // осталяем только родителей
         titles_tree = titles_tree.filter( (elem) => elem.parent === null);
+        // генерируем и записываем номера параграфов для каждого объекта-заголовка
         titles_tree = titles_tree.map( setParagraphNumber );
 
         return titles_tree;
     }
 
+    /**
+     * Генерирует html список
+     *
+     * @param {Object} container - элемент DOM, содержащий заголовки
+     * @returns {string} - html список
+     *
+     * @static
+     */
     static buildContents(hierarchy) {
         const parseLi = (acc, title) => {
             acc += `<li><span>${title.paragraph}</span> <a href="#${title.anchor}" class="link-anchor">${title.text}</a>`;
@@ -226,14 +255,9 @@ class ContentsGenerator {
         if ( !this.hasTitles() ) return '';
 
         const
-            generateFlatHierarchy = this.constructor.generateFlatHierarchy,
             generateHierarchy = this.constructor.generateHierarchy,
             buildContents = this.constructor.buildContents;
 
-        let hierarchy = generateHierarchy( this.titles, generateFlatHierarchy(this.titles) );
-
-        debugger;
-
-        return buildContents(hierarchy);
+        return buildContents( generateHierarchy(this.titles) );
     }
 }
