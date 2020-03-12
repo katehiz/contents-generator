@@ -1,22 +1,27 @@
 class ContentsGenerator {
     constructor(container) {
         this.container = container || window.document.body;
-        this.titles = this.constructor.prepareTitles(container);
+        this.titles = this.#prepareTitles(container);
     }
 
+    /**
+     * Проверка наналичие заголовков в контейнере
+     * @returns {boolean}
+     */
     hasTitles() {
         return this.titles.length !== 0;
     }
 
     /**
      * Транслитерация латинницы в кириллицу
+     * Выражение длиннее 5 слов обрезается
      *
      * @param {String}
      * @returns {String}
      *
-     * @static
+     * @private
      */
-    static transliterate(str) {
+     #transliterate(str) {
         str = str.toLowerCase().replace(/<.+>/, ' ').replace(/\s+/, ' ');
         let newStr = "";
         const c = {
@@ -38,14 +43,13 @@ class ContentsGenerator {
      * @param {Object} container - элемент DOM, содержащий заголовки
      * @returns {Object} titles - jQuery-коллекция обработанных заголовков
      *
-     * @static
+     * @private
      */
-    static prepareTitles(container) {
-        let titles = $(container).find('h1, h2, h3, h4, h5, h6');
-        titles.each(function (index, element) {
-            $(element)
-                .attr('name', ContentsGenerator.transliterate( $(element).text() ))
-                .attr('data-level', element.tagName.substr(1));
+    #prepareTitles(container) {
+        let titles = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
+        [...titles].forEach(function (element) {
+            element.setAttribute('name', transliterate(element.innerText) );
+            element.dataset.level = element.tagName.substr(1);
         });
         return titles;
     }
@@ -53,38 +57,35 @@ class ContentsGenerator {
     /**
      * Генерация массива вложенных объектов-заголовков с данными об иерархии.
      *
-     * @param {Object} titles - jQuery-коллекция обработанных заголовков
      * @returns {Array} titles_tree - массив с информацией о зависимостях заголовков
      *
-     * @static
+     * @private
      */
-    static generateHierarchy(titles) {
-        let parentMain = 0, // самый главный предок для текущей итерации
+    #generateHierarchy() {
+        let titles = [... this.titles],
+            parentMain = 0, // самый главный предок для текущей итерации
             hierarchy = [], // плоская иерархия заголовков
             titles_tree = []; // вложенная иерархия объектов-заголовоков
 
-        const getElementLevel = function(index) {
-            return parseInt(titles[index].dataset.level)
-        };
+        const getElementLevel = (index) => parseInt(titles[index].dataset.level, 10);
 
-        const getLastLevelElement = function(lastLevel) {
+        // поиск в иерархии
+        const getLastElementLevel = (lastLevel) => {
             let result = hierarchy.filter( (element) => element.level === lastLevel );
             if (result.length === 0) return undefined;
             return result[result.length - 1];
         };
 
-        const getElementByIndex = function(index) {
-            return hierarchy[index];
-        };
+        const getElementByIndex = (index) => hierarchy[index];
 
-        titles.each( function(index) {
+        titles.forEach( function(element, index, ATitles) {
             let level_prev = null,
                 level_current = getElementLevel(index),
                 parent_current = null,
                 title_item;
 
             // если существует следующий объект после текущего, работаем
-            if ( index > 0 && titles[index - 1] ) {
+            if ( index > 0 && ATitles[index - 1] ) {
                 level_prev = getElementLevel(index - 1);
 
                 // если предыдущий заголовок большего веса(2 <- 3), то
@@ -105,7 +106,7 @@ class ContentsGenerator {
                         parent_current = null;
                     } else {
                         // найти в массиве hierarchy последний элемент с таким же весом и вернуть его родителя
-                        parent_current = getLastLevelElement(level_current).parent;
+                        parent_current = getLastElementLevel(level_current).parent;
                     }
                 }
             }
@@ -137,8 +138,8 @@ class ContentsGenerator {
         // создание базовый объект для заголовка
         const generateEmptyTitleObj = (acc, item) => {
             let result = {
-                text: $(item).text(),
-                anchor: $(item).attr('name'),
+                text: item.innerText,
+                anchor: item.getAttribute('name'),
                 childrens: []
             };
             acc.push(result);
@@ -208,7 +209,7 @@ class ContentsGenerator {
         };
 
         // формируем заготовки для будущего массива
-        titles_tree = titles.toArray().reduce( generateEmptyTitleObj, [] );
+        titles_tree = titles.reduce( generateEmptyTitleObj, [] );
 
         // добавляем ключ parent каждому элементу в иерархии
         // инкубируем дочерние элементы в родительские
@@ -232,12 +233,11 @@ class ContentsGenerator {
     /**
      * Генерирует html список
      *
-     * @param {Object} container - элемент DOM, содержащий заголовки
      * @returns {string} - html список
      *
-     * @static
+     * @private
      */
-    static buildContents(hierarchy) {
+    #buildContents() {
         const parseLi = (acc, title) => {
             acc += `<li><span>${title.paragraph}</span> <a href="#${title.anchor}" class="link-anchor">${title.text}</a>`;
             if ( title.childrens.length !== 0 ) {
@@ -248,16 +248,15 @@ class ContentsGenerator {
             acc += "</li>";
             return acc;
         };
+        let hierarchy = this.#generateHierarchy();
         return hierarchy.reduce(parseLi, '');
     }
 
     generate() {
-        if ( !this.hasTitles() ) return '';
+        if ( !this.hasTitles() ) {
+            throw new Error(`В контейнере $(this.container) не найдено заголовков`);
+        }
 
-        const
-            generateHierarchy = this.constructor.generateHierarchy,
-            buildContents = this.constructor.buildContents;
-
-        return buildContents( generateHierarchy(this.titles) );
+        return this.#buildContents();
     }
 }
