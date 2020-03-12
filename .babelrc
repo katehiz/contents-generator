@@ -1,0 +1,14 @@
+{
+    "presets": [
+        ["@babel/preset-env", {
+            "targets": {
+                "browsers": ["last 2 versions", "safari >= 7", "ie >= 10"]
+            },
+            "modules": false
+        }]
+    ],
+    "plugins": [
+        "@babel/plugin-proposal-private-methods",
+        "@babel/plugin-transform-classes"
+    ]
+}

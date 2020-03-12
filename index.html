@@ -25,10 +25,11 @@
             <p>Давно выяснено, что при оценке дизайна и композиции читаемый текст мешает сосредоточиться. Lorem Ipsum используют потому, что тот обеспечивает более или менее стандартное заполнение шаблона, а также реальное распределение букв и пробелов в абзацах, которое не получается при простой дубликации "Здесь ваш текст.. Здесь ваш текст.. Здесь ваш текст.." Многие программы электронной вёрстки и редакторы HTML используют Lorem Ipsum в качестве текста по умолчанию, так что поиск по ключевым словам "lorem ipsum" сразу показывает, как много веб-страниц всё ещё дожидаются своего настоящего рождения. За прошедшие годы текст Lorem Ipsum получил много версий. Некоторые версии появились по ошибке, некоторые - намеренно (например, юмористические варианты).</p>
             <h4>Откуда он появился 2? - H4</h4>
             <h3>Почему он используется? - H3 last</h3>
-
         </div>
+
         <script src="vendor/jquery-3.4.1.min.js"></script>
-        <!--<script src="contents-generator.module.js">/*Функциональный стиль*/</script>
+
+        <script src="source/generator.module.js">/*Функциональный стиль*/</script>
         <script>
             document.addEventListener('DOMContentLoaded', function(){
                 const textContainer = this.querySelector('.news-detail-text');
@@ -38,19 +39,17 @@
                     $('.article_contents > ul').append(contents);
                 }
             });
-        </script>-->
+        </script>
 
-        <script src="contents-generator.class.js">/*Объектно-ориентированный стиль стиль*/</script>
+        <!--<script src="source/generator.class.js">/*Объектно-ориентированный стиль*/</script>
         <script>
             document.addEventListener('DOMContentLoaded', function(){
-                let textContainer = this.querySelector('.news-detail-text');
-                let contents = new ContentsGenerator( textContainer );
-
+                let contents = new ContentsGenerator( this.querySelector('.news-detail-text') );
                 if ( contents.hasTitles() ) {
                     $('.news-detail-text').before("<div class='article_contents'><div class='h2'>Содержание</div><ul class='list-base'></ul></div>");
                     $('.article_contents > ul').append( contents.generate() );
                 }
             });
-        </script>
+        </script>-->
     </body>
 </html>

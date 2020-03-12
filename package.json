@@ -1,0 +1,30 @@
+{
+  "name": "contents-generator",
+  "version": "1.0.0",
+  "description": "Generator of contents for titles list",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/katehiz/contents-generator.git"
+  },
+  "author": "Stanislav Shchukin",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/katehiz/contents-generator/issues"
+  },
+  "homepage": "https://github.com/katehiz/contents-generator#readme",
+  "devDependencies": {
+    "@babel/core": "^7.8.4",
+    "@babel/plugin-proposal-private-methods": "^7.8.3",
+    "@babel/plugin-transform-classes": "^7.8.6",
+    "@babel/preset-env": "^7.8.4",
+    "babel-loader": "^8.0.0-beta.6",
+    "gulp": "^4.0.2",
+    "gulp-babel": "^8.0.0",
+    "path": "^0.12.7"
+  },
+  "dependencies": {}
+}
