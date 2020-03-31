@@ -21,7 +21,7 @@ class ContentsGenerator {
      *
      * @private
      */
-     #transliterate(str) {
+     #transliteration(str) {
         str = str.toLowerCase().replace(/<.+>/, ' ').replace(/\s+/, ' ');
         let newStr = "";
         const c = {
@@ -48,7 +48,7 @@ class ContentsGenerator {
     #prepareTitles(container) {
         let titles = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
         [...titles].forEach(function (element) {
-            element.setAttribute('name', this.#transliterate(element.innerText) );
+            element.setAttribute('name', this.#transliteration(element.innerText) );
             element.dataset.level = element.tagName.substr(1);
         });
         return titles;
