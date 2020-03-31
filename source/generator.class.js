@@ -48,7 +48,7 @@ class ContentsGenerator {
     #prepareTitles(container) {
         let titles = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
         [...titles].forEach(function (element) {
-            element.setAttribute('name', transliterate(element.innerText) );
+            element.setAttribute('name', this.#transliterate(element.innerText) );
             element.dataset.level = element.tagName.substr(1);
         });
         return titles;
@@ -256,7 +256,7 @@ class ContentsGenerator {
         if ( !this.hasTitles() ) {
             throw new Error(`В контейнере $(this.container) не найдено заголовков`);
         }
-
-        return this.#buildContents();
+        let result = this.#buildContents();
+        return result;
     }
 }
