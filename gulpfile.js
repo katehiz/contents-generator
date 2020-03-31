@@ -5,7 +5,7 @@ const ROOT_PATH = './';
 
 const
     gulp = require('gulp'),
-    //browserSync = require('browser-sync').create(),
+    browserSync = require('browser-sync').create(),
     //uglify = require('gulp-uglify-es').default,
     //sourcemaps = require('gulp-sourcemaps'),
     //plumber = require('gulp-plumber'), // для отслеживания ошибок
@@ -32,10 +32,9 @@ gulp.task('build', gulp.series('js'));
 
 function watch() {
     browserSync.init({
-        proxy: PUBLIC_PATH,
-        // server: {baseDir: './'}
+        server: {baseDir: './dist/'}
     });
-    gulp.watch(DEV_PATH + '*.js', 'js');
+    gulp.watch(DEV_PATH + '*.js', gulp.series('js'));
     gulp.watch(DEV_PATH + '*.js').on('change', browserSync.reload);
     //gulp.watch(PUBLIC_PATH + '*.html').on('change', browserSync.reload);
 }
